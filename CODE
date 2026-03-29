@@ -1,0 +1,83 @@
+!pip  install streamlit
+import streamlit as st
+from datetime import date, timedelta
+
+st.set_page_config(page_title="AI Study Planner", layout="centered")
+
+st.title(" AI Study Planner")
+st.write("Generate a smart study plan based on your subjects and exam date.")
+
+# ---------------- INPUT SECTION ---------------- #
+
+subjects_input = st.text_input("Enter Subjects (comma separated)", "Math, OS, DBMS")
+difficulty_input = st.text_input("Enter Difficulty (easy, medium, hard)", "hard, medium, easy")
+
+exam_date = st.date_input("Select Exam Date", min_value=date.today())
+hours_per_day = st.slider("Study Hours per Day", 1, 12, 4)
+
+# ---------------- PROCESS ---------------- #
+
+def generate_plan(subjects, difficulties, days_left, hours_per_day):
+    weight_map = {"easy": 1, "medium": 2, "hard": 3}
+
+    weights = []
+    for d in difficulties:
+        d = d.strip().lower()
+        weights.append(weight_map.get(d, 1))
+
+    total_weight = sum(weights)
+
+    plan = []
+    for i in range(len(subjects)):
+        subject_time = (weights[i] / total_weight) * hours_per_day
+        total_time = subject_time * days_left
+
+        plan.append({
+            "subject": subjects[i].strip(),
+            "daily_time": round(subject_time, 2),
+            "total_time": round(total_time, 2)
+        })
+
+    return plan
+
+# ---------------- BUTTON ---------------- #
+
+if st.button(" Generate Study Plan"):
+    if subjects_input and difficulty_input:
+        subjects = subjects_input.split(",")
+        difficulties = difficulty_input.split(",")
+
+        if len(subjects) != len(difficulties):
+            st.error(" Number of subjects and difficulty levels must match!")
+        else:
+            today = date.today()
+            days_left = (exam_date - today).days
+
+            if days_left <= 0:
+                st.error(" Exam date must be in the future!")
+            else:
+                plan = generate_plan(subjects, difficulties, days_left, hours_per_day)
+
+                st.success(f" You have {days_left} days until your exam!")
+
+                st.subheader(" Daily Study Plan")
+                for item in plan:
+                    st.write(f" **{item['subject']}** → {item['daily_time']} hrs/day")
+
+                st.subheader(" Total Study Time (Till Exam)")
+                for item in plan:
+                    st.write(f" **{item['subject']}** → {item['total_time']} hrs total")
+
+                # ---------------- SIMPLE SCHEDULE ---------------- #
+                st.subheader(" Sample 3-Day Schedule")
+
+                for i in range(min(3, days_left)):
+                    day = today + timedelta(days=i)
+                    st.write(f"### {day}")
+
+                    for item in plan:
+                        st.write(f"- {item['subject']} → {item['daily_time']} hrs")
+
+# ---------------- FOOTER ---------------- #
+st.markdown("---")
+st.caption("Built with using Streamlit")
